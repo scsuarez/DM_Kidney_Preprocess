@@ -2,12 +2,12 @@
 
 #working directory should contain
 #3 Directories
-## CEL Liver Files - 2218 CEL liver files downloaded from DrugMatrix, ensure all files are present when proceeding
+## CEL Kidney Files - ? CEL kidney files downloaded from DrugMatrix, ensure all files are present when proceeding
 ## Supplementary_Files - 
 ### Containing target of phenodatatxt currently "Supplementary_Files/Corrected_Affymetrix_Microarray_Data_Labels_spreadsheet_02_23_2012.txt"
 ### eventually should include 
 #### desired chemical conditions for testing .xlsx file
-#### detailed treatment to control mappings text table file 
+#### detailed treatment to control mappings text table file for kidney 
 ## and Workspaces_and_Objects 
 ### directory for storing objects created to save expression sets at checkpoints in the analysis
 
@@ -64,10 +64,10 @@ phenodataDF <- read.table(phenodatatxt,header=TRUE,row.names="ARRAY_ID",sep="\t"
 #getting phenodata for treatments to make a list of treatment/condition types
 pdata_treatments <- phenodataDF[phenodataDF$CHEMICAL != "", ] # treatments
 pdata_controls <- phenodataDF[phenodataDF$CHEMICAL == "", ] # controls
-pdata_treatments_liver <- subset(pdata_treatments, ORGAN_OR_CELL_TYPE=="LIVER")
-pdata_controls_liver <- subset(pdata_controls, ORGAN_OR_CELL_TYPE=="LIVER")
-uTreatments <- unique(pdata_treatments_liver[, c("CHEMICAL", "DOSE", "DURATION", "VEHICLE", "ROUTE", "ORGAN_OR_CELL_TYPE")])
-uControls <- unique(pdata_controls_liver[, c("CHEMICAL", "DOSE", "DURATION", "VEHICLE", "ROUTE", "ORGAN_OR_CELL_TYPE")])
+pdata_treatments_kidney <- subset(pdata_treatments, ORGAN_OR_CELL_TYPE=="KIDNEY")
+pdata_controls_kidney <- subset(pdata_controls, ORGAN_OR_CELL_TYPE=="KIDNEY")
+uTreatments <- unique(pdata_treatments_kidney[, c("CHEMICAL", "DOSE", "DURATION", "VEHICLE", "ROUTE", "ORGAN_OR_CELL_TYPE")])
+uControls <- unique(pdata_controls_kidney[, c("CHEMICAL", "DOSE", "DURATION", "VEHICLE", "ROUTE", "ORGAN_OR_CELL_TYPE")])
 
 #function to get absolute file path for all CEL files in a directory, filter out duplicate arrays, no copying of files
 #a directory should be used that has includes all CEL files but does not have any CEL files that are not being tested
@@ -106,7 +106,7 @@ ArrayMatch <- function(treatments, controls){
   colnames(treatments) <- paste("TREATMENT_", colnames(treatments), sep="")
   
   #making table that matches experimental arrays and control arrays
-  #table/data frame will contain information from treatments and information from controls, current usage will be for _liver
+  #table/data frame will contain information from treatments and information from controls, current usage will be for _kidney
   ArrayMatch <- data.frame(1:(ncol(treatments)+ncol(controls)))#just need to preallocate the right amount of columns, might not be best way
   ArrayMatch <- t(ArrayMatch) #transposing since it was just one column and what were the row names need to be the column names  
   ArrayMatch <- as.data.frame(ArrayMatch)
@@ -137,7 +137,7 @@ ArrayMatch <- function(treatments, controls){
 #this is a step we need before the fold change matrix is calculated
 #only needs to be performed once at the beginning of the analysis and will not change as long as we are using DrugMatrix
 #do this before actual array analysis
-Liver_ConditionsMatch_AllC <- ArrayMatch(pdata_treatments_liver, pdata_controls_liver)
+Liver_ConditionsMatch_AllC <- ArrayMatch(pdata_treatments_kidney, pdata_controls_kidney)
 Liver_ConditionsMatch <- cbind(Liver_ConditionsMatch_AllC[1:6], Liver_ConditionsMatch_AllC[20:22], Liver_ConditionsMatch_AllC[34])
 uLiver_ConditionsMatch <- ArrayMatch(uTreatments, uControls)
 write.table(Liver_ConditionsMatch, file = "Supplementary_Files/Liver_Treated_to_Control_Mapping.txt", sep="\t")

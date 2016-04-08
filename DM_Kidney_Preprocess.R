@@ -3,24 +3,24 @@
 
 # load CEL files (ReadAffy) and read annotations
 uniqueCELPaths <- GetAllCELFiles() # getting all CEL files from various folders, recursive (goes into subfolders too),user defined function-JL
-eset_liver_raw <- ReadAffy(filenames=uniqueCELPaths) # load CEL files 
+eset_kidney_raw <- ReadAffy(filenames=uniqueCELPaths) # load CEL files 
 allCELNames <- basename(uniqueCELPaths) # no path listed if one folder has all cel files
 phenodata_raw <- phenodata[allCELNames,] # getting just the rows for CEL files that are being used
 pdata_raw <- pData(phenodata_raw)   # getting data frame of the phenodata
-eset_liver_raw <- eset_liver_raw[,allCELNames] # selects columns for CEL files that are being used
-phenoData(eset_liver_raw) <- phenodata_raw # attaching phenoData to eset_liver_raw
-save(eset_liver_raw, file="Workspaces_And_Objects/eset_liver_raw.RData")
+eset_kidney_raw <- eset_kidney_raw[,allCELNames] # selects columns for CEL files that are being used
+phenoData(eset_kidney_raw) <- phenodata_raw # attaching phenoData to eset_kidney_raw
+save(eset_kidney_raw, file="Workspaces_And_Objects/eset_kidney_raw.RData")
 
 # do RMA normalization
-eset_liver_raw_rma <- rma(eset_liver_raw) # rma converts to log2 as part of normalization
-remove(eset_liver_raw) # remove object from environment to free up memory since it is no longer needed
+eset_kidney_raw_rma <- rma(eset_kidney_raw) # rma converts to log2 as part of normalization
+remove(eset_kidney_raw) # remove object from environment to free up memory since it is no longer needed
 # can do this because it was saved in "~Workspaces_and_Objects/"
-save(eset_liver_raw_rma, file="Workspaces_And_Objects/eset_liver_raw_rma.RData")
+save(eset_kidney_raw_rma, file="Workspaces_And_Objects/eset_kidney_raw_rma.RData")
 
 # do ARRAYQUALITYCONTROL
 inttest <- c("CHEMICAL","DURATION","DOSE")# changed-JL, old was inttest <- c("COMPOUND_NAME","SACRI_PERIOD","DOSE")
-arrayQualityMetrics(expressionset = eset_liver_raw_rma, outdir = "./Quality_Metrics/", force = FALSE, intgroup = inttest)
-remove(eset_liver_raw_rma) # remove object from environment to free up memory since it is no longer needed and was saved previously
+arrayQualityMetrics(expressionset = eset_kidney_raw_rma, outdir = "./Quality_Metrics/", force = FALSE, intgroup = inttest)
+remove(eset_kidney_raw_rma) # remove object from environment to free up memory since it is no longer needed and was saved previously
 # *****************************
 # 
 # comment from Dr. AH, not used now- # new annotation file: 3_Affy_minus150_clean2.txt
@@ -43,17 +43,17 @@ outlierNamesVec <- as.vector(outlierNames)
 write(outlierNamesVec, file = "Supplementary_Files/Outlier_CELnames_removed.txt")
 
 # load in files that are not outliers and reattach phenodata
-affy_liver_qc <- ReadAffy(filenames = notOutlierFiles)
+affy_kidney_qc <- ReadAffy(filenames = notOutlierFiles)
 notOLNames <- basename(notOutlierFiles)
 phenodata_notOL <- phenodata[notOLNames,] # getting just the rows for CEL files that are being used
 pdata_notOL <- pData(phenodata_notOL)
-affy_liver_qc <- affy_liver_qc[,notOLNames] # changing order
-phenoData(affy_liver_qc) <- phenodata_notOL
-save(affy_liver_qc, file="Workspaces_And_Objects/affy_liver_qc.RData")
+affy_kidney_qc <- affy_kidney_qc[,notOLNames] # changing order
+phenoData(affy_kidney_qc) <- phenodata_notOL
+save(affy_kidney_qc, file="Workspaces_And_Objects/affy_kidney_qc.RData")
 
 # use affybatch object to get present calls
 # do this immediately after qc to prevent error of unknown origin
-callsESet <- mas5calls(affy_liver_qc)   # on data without outliers
+callsESet <- mas5calls(affy_kidney_qc)   # on data without outliers
 callsDF <- exprs(callsESet)             # dataframe of calls
 
 # getting percent present for each probe in our expression data
@@ -73,13 +73,13 @@ percPresent <- rowSums(numprescallsDF)/dim(numprescallsDF)[2]
 # outputfoldchangematrix <- foldchangematrix[percPresent>=.25,] # select for rows/genes that had greater than 25% of conditions with all present calls
 
 # do rma for this set
-eset_liver_rma_qc <- rma(affy_liver_qc)
+eset_kidney_rma_qc <- rma(affy_kidney_qc)
 # filters out nonspecific probes
-list_liver_nsFilter_rma_qc <- nsFilter(eset_liver_rma_qc, remove.dupEntrez = FALSE)
+list_kidney_nsFilter_rma_qc <- nsFilter(eset_kidney_rma_qc, remove.dupEntrez = FALSE)
 # nsfilter returns a 2 element list, of the eset and the filter log
 # use exprs to return just the expression set portion of this object
-eset_liver_nsFilter_rma_qc <- list_liver_nsFilter_rma_qc$eset
-save(eset_liver_nsFilter_rma_qc, file="Workspaces_And_Objects/eset_liver_nsFilter.RData")
+eset_kidney_nsFilter_rma_qc <- list_kidney_nsFilter_rma_qc$eset
+save(eset_kidney_nsFilter_rma_qc, file="Workspaces_And_Objects/eset_kidney_nsFilter.RData")
 
 ################################
 # calculate FC matrix
@@ -88,7 +88,7 @@ save(eset_liver_nsFilter_rma_qc, file="Workspaces_And_Objects/eset_liver_nsFilte
 # going back to version created by MDAH
 # adapted from DM_Liver_Preprocess.R
 # Read the entire dataset
-# load("eset_liver_nsFilter.RData.RData")
+# load("eset_kidney_nsFilter.RData")
 #creating a function to make the fold change data frame
 # 3 inputs
 ## eset - eset after gene filter fitlering of non specific probes and probes with low variance
@@ -148,8 +148,8 @@ makeFC_DF <- function(eset, mappings, filename_fc){
 #************************
 }
 
-filename_fc <- paste("Workspaces_And_Objects/liver_fc_gene_filter_rma_qc.txt", sep="")
-fc_initial <- makeFC_DF(eset_liver_nsFilter_rma_qc, Liver_ConditionsMatch, filename_fc )
+filename_fc <- paste("Workspaces_And_Objects/kidney_fc_gene_filter_rma_qc.txt", sep="")
+fc_initial <- makeFC_DF(eset_kidney_nsFilter_rma_qc, Liver_ConditionsMatch, filename_fc )
 
 # function to filter rows of percPresent vector and match with rows of the fold change matrix
 # will be used to filter the fc matrix based on present calls
@@ -186,7 +186,7 @@ percPresent_FCMatch <- presCallsFCMatch(percPresent, fc_initial)
 #filter inital fold change data frame probes
 #filter only probes with greater than %25 present
 fc_final <- fc_initial[percPresent_FCMatch >= .25, ]
-filename_fc_final <- paste("Workspaces_And_Objects/liver_fc_final_filtered.txt", sep="")
+filename_fc_final <- paste("Workspaces_And_Objects/kidney_fc_final_filtered.txt", sep="")
 write.table(fc_final, file=filename_fc_final, sep="\t", quote=FALSE, row.names = FALSE)
 
 enddate <- date()
