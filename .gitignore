@@ -1,0 +1,10 @@
+.Rproj.user
+.Rhistory
+.RData
+*.RData
+*.Rproj
+CEL_Kidney_Files/
+*.CEL
+Supplementary_Files/
+Workspaces_And_Objects/
+Quality_Metrics/
