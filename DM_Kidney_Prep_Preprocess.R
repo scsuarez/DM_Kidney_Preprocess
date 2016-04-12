@@ -137,7 +137,7 @@ ArrayMatch <- function(treatments, controls){
 #this is a step we need before the fold change matrix is calculated
 #only needs to be performed once at the beginning of the analysis and will not change as long as we are using DrugMatrix
 #do this before actual array analysis
-Liver_ConditionsMatch_AllC <- ArrayMatch(pdata_treatments_kidney, pdata_controls_kidney)
-Liver_ConditionsMatch <- cbind(Liver_ConditionsMatch_AllC[1:6], Liver_ConditionsMatch_AllC[20:22], Liver_ConditionsMatch_AllC[34])
-uLiver_ConditionsMatch <- ArrayMatch(uTreatments, uControls)
-write.table(Liver_ConditionsMatch, file = "Supplementary_Files/Liver_Treated_to_Control_Mapping.txt", sep="\t")
+Kidney_ConditionsMatch_AllC <- ArrayMatch(pdata_treatments_kidney, pdata_controls_kidney)
+Kidney_ConditionsMatch <- cbind(Kidney_ConditionsMatch_AllC[1:6], Kidney_ConditionsMatch_AllC[20:22], Kidney_ConditionsMatch_AllC[34])
+uKidney_ConditionsMatch <- ArrayMatch(uTreatments, uControls)
+write.table(Kidney_ConditionsMatch, file = "Supplementary_Files/Kidney_Treated_to_Control_Mapping.txt", sep="\t")
