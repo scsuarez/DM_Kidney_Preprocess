@@ -74,13 +74,15 @@ percPresent <- rowSums(numprescallsDF)/dim(numprescallsDF)[2]
 
 # do rma for this set
 eset_kidney_rma_qc <- rma(affy_kidney_qc)
-# filters out nonspecific probes
-list_kidney_nsFilter_rma_qc <- nsFilter(eset_kidney_rma_qc, remove.dupEntrez = FALSE)
+#filter eset based on present calls for each probe, percent present greater or equal to .25
+eset_kidney_pc.25_rma_qc <- eset_kidney_rma_qc[percPresent >= .25]
+# filters out nonspecific probes and for variance based on interquartile range, default retains middle 2 quartiles
+# also leaves in probes that return the same EntrezID
+list_kidney_nsFilter_pc.25_rma_qc <- nsFilter(eset_kidney_pc.25_rma_qc, remove.dupEntrez = FALSE)
 # nsfilter returns a 2 element list, of the eset and the filter log
 # use exprs to return just the expression set portion of this object
-# do not save yet need to match with probes from the FC matrix filtered for present calls
-# eset_kidney_nsFilter_rma_qc <- list_kidney_nsFilter_rma_qc$eset
-# save(eset_kidney_nsFilter_rma_qc, file="Workspaces_And_Objects/eset_kidney_nsFilter.RData")
+eset_kidney_nsFilter_pc.25_rma_qc <- list_kidney_nsFilter_pc.25_rma_qc$eset
+save(eset_kidney_nsFilter_pc.25_rma_qc, file="Workspaces_And_Objects/eset_kidney_nsFilter_pc25_rma_qc.RData")
 
 ################################
 # calculate FC matrix
@@ -149,45 +151,8 @@ makeFC_DF <- function(eset, mappings, filename_fc){
 #************************
 }
 
-filename_fc <- paste("Workspaces_And_Objects/kidney_fc_gene_filter_rma_qc.txt", sep="")
-fc_initial <- makeFC_DF(eset_kidney_nsFilter_rma_qc, Liver_ConditionsMatch, filename_fc )
-
-# function to filter rows of percPresent vector and match with rows of the fold change matrix
-# will be used to filter the fc matrix based on present calls
-# inputs - 
-## percPresent vector, named list of probes and the % of the probes present for each probe 
-## fc_final data frame - created df of probes and chemical treatment to control log ratios
-# output - a filtered vector that matches the dimensions and names of the fc matrix with the percPresent vector
-## ie, returns only the probes from percPresent that are also in the fold change matrix
-presCallsFCMatch <- function(percPresent, fc_DF){
-  probenames <- names(percPresent)
-  probenames_filter <- row.names(fc_DF)
-  # if the probe name(row name) of the fold change matrix is present in the list of all probes from the present calls, return TRUE
-  # return a logical vector indicating if the probename from the fold change matrix is present in the complete list of probes
-  percPresent_filter <- probenames %in% probenames_filter
-  # transform from logical to numeric
-  percPresent_filter <- percPresent_filter*1
-  # preserve the probes with 0 present by transforming, add 1 to all values
-  percPresent_num <- percPresent+1
-  # multiply percPresent_num by percPresent_filter to set to 0 all probes not present in the fc matrix
-  percPresent_removed <- percPresent_filter*percPresent_num
-  # remove probes not present in fc matrix
-  # values of zero are not present in our fc matrix  
-  percPresent_removed <- percPresent_removed[percPresent_removed!=0]
-  # retransform our percPresent vector to original values, now with only probes from fc_final
-  percPresent_removed <- percPresent_removed-1
-
-  return(percPresent_removed)
-}
-
-#match rows of fc_initial with percPresent
-#filters out rows of percPresent that aren't
-percPresent_FCMatch <- presCallsFCMatch(percPresent, fc_initial)
-
-#filter inital fold change data frame probes
-#filter only probes with greater than %25 present
-fc_final <- fc_initial[percPresent_FCMatch >= .25, ]
-filename_fc_final <- paste("Workspaces_And_Objects/kidney_fc_final_filtered.txt", sep="")
-write.table(fc_final, file=filename_fc_final, sep="\t", quote=FALSE, row.names = FALSE)
+filename_fc <- paste("Workspaces_And_Objects/kidney_fc_nsFilter_pc25_rma_qc.txt", sep="")
+fc_final <- makeFC_DF(eset_kidney_nsFilter_pc.25_rma_qc, Kidney_ConditionsMatch, filename_fc )
+write.table(fc_final, file=filename_fc, sep="\t", quote=FALSE, row.names = FALSE)
 
 enddate <- date()
