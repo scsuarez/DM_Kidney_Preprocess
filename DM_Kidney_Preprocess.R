@@ -75,14 +75,51 @@ percPresent <- rowSums(numprescallsDF)/dim(numprescallsDF)[2]
 # do rma for this set
 eset_kidney_rma_qc <- rma(affy_kidney_qc)
 #filter eset based on present calls for each probe, percent present greater or equal to .25
-eset_kidney_pc.25_rma_qc <- eset_kidney_rma_qc[percPresent >= .25]
 # filters out nonspecific probes and for variance based on interquartile range, default retains middle 2 quartiles
 # also leaves in probes that return the same EntrezID
-list_kidney_nsFilter_pc.25_rma_qc <- nsFilter(eset_kidney_pc.25_rma_qc, remove.dupEntrez = FALSE)
+# now being explicit about defaults
+# only option being changed from default is remove.dupEntrez = FALSE, now not filtering for unique, most variable probe when the probes match duplicate EntrezId
+list_kidney_nsFilter_rma_qc <- nsFilter(eset_kidney_rma_qc, require.entrez = TRUE, remove.dupEntrez = FALSE, var.func = IQR, var.cutoff = .5, var.filter = TRUE, filterByQuantile = TRUE)
 # nsfilter returns a 2 element list, of the eset and the filter log
 # use exprs to return just the expression set portion of this object
-eset_kidney_nsFilter_pc.25_rma_qc <- list_kidney_nsFilter_pc.25_rma_qc$eset
-save(eset_kidney_nsFilter_pc.25_rma_qc, file="Workspaces_And_Objects/eset_kidney_nsFilter_pc25_rma_qc.RData")
+eset_kidney_nsFilter_rma_qc <- list_kidney_nsFilter_rma_qc$eset
+
+# function to filter rows of percPresent vector and match with rows of the of our filtered expression set
+# will be used to filter the nsFilter eset based on present calls
+# inputs - 
+## percPresent vector, named list of probes and the % of the probes present for each probe 
+## eset - only needs to be used on esets with a differing probeset than complete Affymetrix data we begin with
+### can directly filter esets using eset[row.names(exprs(eset)) %in% probelist,] or by eset[probefilter > 0]
+# output - a filtered vector that matches the probes in percPresent vector with the probes of the eset object
+## ie, returns only the probes from percPresent that are also in the eset
+presCallsEsetMatch <- function(percPresent, eset){
+  probenames <- names(percPresent)
+  probenames_filter <- row.names(exprs(eset))
+  # if the probe name(row name) of the eset is present in the list of all probes from the present calls, return TRUE
+  # return a logical vector indicating if the probename from the eset is present in the complete list of probes
+  percPresent_filter <- probenames %in% probenames_filter
+  # transform from logical to numeric
+  percPresent_filter <- percPresent_filter*1
+  # preserve the probes with 0 present by transforming, add 1 to all values
+  percPresent_num <- percPresent+1
+  # multiply percPresent_num by percPresent_filter to set to 0 all probes not present in the eset
+  percPresent_removed <- percPresent_filter*percPresent_num
+  # remove probes not present in eset
+  # values of zero are not present in our eset 
+  percPresent_removed <- percPresent_removed[percPresent_removed!=0]
+  # retransform our percPresent vector to original values, now with only probes from eset
+  percPresent_removed <- percPresent_removed-1
+  
+  return(percPresent_removed)
+}
+
+# match rows of eset with percPresent
+# filters out rows of percPresent that aren't
+percPresent_esetMatch <- presCallsEsetMatch(percPresent, eset_kidney_nsFilter_rma_qc)
+# filter eset based on present calls for each matched probe, percent present greater or equal to .25
+eset_kidney_pc.25_nsFilter_rma_qc <- eset_kidney_nsFilter_rma_qc[percPresent_esetMatch >= .25]
+# save eset to file
+save(eset_kidney_pc.25_nsFilter_rma_qc, file="Workspaces_And_Objects/eset_kidney_pc25_nsFilter.RData")
 
 ################################
 # calculate FC matrix
@@ -151,8 +188,8 @@ makeFC_DF <- function(eset, mappings, filename_fc){
 #************************
 }
 
-filename_fc <- paste("Workspaces_And_Objects/kidney_fc_nsFilter_pc25_rma_qc.txt", sep="")
-fc_final <- makeFC_DF(eset_kidney_nsFilter_pc.25_rma_qc, Kidney_ConditionsMatch, filename_fc )
+filename_fc <- paste("Workspaces_And_Objects/kidney_fc_pc25_nsFilter_rma_qc.txt", sep="")
+fc_final <- makeFC_DF(eset_kidney_pc.25_nsFilter_rma_qc, Kidney_ConditionsMatch, filename_fc )
 write.table(fc_final, file=filename_fc, sep="\t", quote=FALSE, row.names = FALSE)
 
 enddate <- date()
